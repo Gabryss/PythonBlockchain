@@ -3,6 +3,7 @@ Peer 2 peer local network
 
 Based on the socket library
 """
+from ast import arg
 import socket
 import struct
 import time
@@ -35,7 +36,11 @@ class Peer():
         self.shutdown = False # Used to stop the main loop
 
         self.lock = threading.Lock() # Ensure proprer access to node list (Because threads manage the list)
-
+        
+        if id_p:
+            self.id = id_p
+        else:
+            self.id = '%s:%d' % (self.serverhost, self.serverport)
 
     def createServerSocket(self, port_p, backlog_p=5):
         """
@@ -54,23 +59,67 @@ class Peer():
         """
         deadNodes = []
         for node in self.nodes:
-            connected = False
-            host, port = self.nodes[node]
+            try:
+                connected = False
+                host, port = self.nodes[node]
+                nodeConn = NodeConnection(node, host, port)
+                nodeConn.sendData('PING', '')
+                connected = True
+            except:
+                deadNodes.append(node)
+            if connected:
+                nodeConn.close()
 
-            pass
-
+        self.lock.acquire()
         for node in deadNodes:
             if node in self.nodes:
                 del self.nodes[node]
-            
-            pass
+        self.lock.release()
+    
+    def handleNodes(self, clientstock_p):
+        """
+        Handle new connections
+        """
+
+        print("Connected to {0}").format(clientstock_p)
+        
+        host, port = clientstock_p.getpeername()
+        nodeCon = NodeConnection(None, host, port, clientstock_p)
+        
+        try:
+            msgtype, msgdata = nodeCon.recvdata()
+            if msgtype: msgtype = msgtype.upper()
+            if msgtype not in self.handlers:
+                print("Not handled: %s: %ss", msgtype, msgdata)
+            else:
+                print("Hqndling node msg: %s: %ss", msgtype, msgdata)
+            self.handlers[ msgtype ]( nodeCon, msgdata )
+
+        except KeyboardInterrupt:
+            raise
+        
+        nodeCon.close()
+
+
     
     def main(self):
         sock = self.createServerSocket(self.serverport)
         sock.settimeout(2)
         print("Node started")
+        
         while not self.shutdown:
-            pass
+            try:
+                print("Listening for connections")
+                clientsock, clientaddr = sock.accept()
+                clientsock.settimeout(None)
+
+                thread = threading.Thread(target=self.handleNodes, args=clientsock)
+                thread.start()
+                
+            except:
+                print("Stopping node {}").format(self.id)
+                self.shutdown = True
+
         sock.close()
 
 
@@ -159,7 +208,6 @@ class Peer():
 class NodeConnection():
     """
     Connect two nodes as a peer to peer connection
-    
     """
     def __init__(self, nodeid_p, host_p, port_p, sock_p=None):
 

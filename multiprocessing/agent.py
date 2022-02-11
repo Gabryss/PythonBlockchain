@@ -50,9 +50,9 @@ class Agent():
                 print("Closing")
                 break
             for data in self.data:
-                print("The sending data is {0}".format(data))
+                #print("The sending data is {0}".format(data))
                 self.sendData(self.pipe,data)
             self.receiveData(self.pipe)
             print(self.agent.pid)
-            print(self.pid)
+            #print(self.pid)
             time.sleep(0.5)
