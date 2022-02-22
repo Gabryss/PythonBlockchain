@@ -1,5 +1,5 @@
 # ROSBlockchain
-
+The readme part should be remake
 ## Introduction
 The purpose of this project is to get familiar with multi-robot approaches for autonomous communication and data exchange. As a result, exchanges between robots don’t have to be relevant so raw data (like position, velocity or even a message) can successfully complete the objective.
 
